@@ -1,6 +1,6 @@
 ---
 title: "Mini-Project 4"
-author: "Emily Liu"
+author: "Emily Liu, Karina Lieb, and Alexis Kilayko"
 date: "April 28, 2018"
 output: html_document
 ---
@@ -33,7 +33,7 @@ test_stations %>%
   arrange(station_id)
 
 
-test_stations_sum <- db %>%
+station_summary <- db %>%
   dbGetQuery("SELECT *
              FROM station_summary;")
 ```
@@ -156,8 +156,20 @@ WHERE gender = 2
 GROUP BY trips.end_station_id
 ORDER BY N_end desc;")
 
-#trying to full join start_tally and end_tally in order to calculate the total number of visits, but need to have same column name? 
-rename(start_tally, "start_station_id" = "station_id")
-rename(end_tally, "end_station_id" = "station_id")
+#join start_tally and end_tally in order to calculate the total number of visits
+female_visits <- full_join(start_tally, end_tally, by = c("start_station_id" = "end_station_id"))
 
-female_visits <- full_join(start_tally, end_tally, by = "station_id"))
+#replacing NA values with 0
+female_visits$N_start[is.na(female_visits$N_start)] <- 0
+
+#calculating total visits by women
+female_visits <- female_visits %>%
+  mutate(total_visits = N_start + N_end) %>%
+  arrange(desc(total_visits)) %>%
+  head(10) %>%
+
+#getting lat, lon, and station name from station summary table
+  left_join(station_summary, by = c("start_station_id" = "station_id")) %>%
+  select(lat, lon, name, start_station_id, total_visits)
+```
+
