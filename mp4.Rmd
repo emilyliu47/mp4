@@ -31,11 +31,6 @@ test_stations <- db %>%
 test_stations %>%
   distinct(station_id) %>%
   arrange(station_id)
-
-
-station_summary <- db %>%
-  dbGetQuery("SELECT *
-             FROM station_summary;")
 ```
 
 ```{r}
@@ -137,33 +132,39 @@ LIMIT 10;")
 ```
 
 ```{r}
-#finding most visited stations for females
+#station_summary table from database
+station_summary <- db %>%
+  dbGetQuery("SELECT *
+             FROM station_summary;")
 
-#start stations and their number of visits for females
+top_10_visits <- function(demographic, demo_type) { #this function takes in a tally of  start and end station visits for a demographic (two tables), and outputs one table that is the 10 most visited (start and end) stations for the demographic
+
+#number of female visits to each start station
 start_tally <- db %>%
-  dbGetQuery("
+  dbGetQuery(paste("
 SELECT trips.start_station_id, sum(1) AS N_start
 FROM citibike.trips
-WHERE gender = 2
+WHERE", demographic, "=",demo_type, " 
 GROUP BY trips.start_station_id
-ORDER BY N_start desc;")
+ORDER BY N_start desc;"))
 
+#number of female visits to each end station
 end_tally <- db %>%
-  dbGetQuery("
+  dbGetQuery(paste("
 SELECT trips.end_station_id, sum(1) AS N_end
 FROM citibike.trips
-WHERE gender = 2
+WHERE ", demographic, "=",demo_type, "
 GROUP BY trips.end_station_id
-ORDER BY N_end desc;")
+ORDER BY N_end desc;"))
 
 #join start_tally and end_tally in order to calculate the total number of visits
-female_visits <- full_join(start_tally, end_tally, by = c("start_station_id" = "end_station_id"))
+visits <- full_join(start_tally, end_tally, by = c("start_station_id" = "end_station_id"))
 
 #replacing NA values with 0
-female_visits$N_start[is.na(female_visits$N_start)] <- 0
+visits$N_start[is.na(visits$N_start)] <- 0
 
 #calculating total visits by women
-female_visits <- female_visits %>%
+visits <- visits %>%
   mutate(total_visits = N_start + N_end) %>%
   arrange(desc(total_visits)) %>%
   head(10) %>%
@@ -171,5 +172,11 @@ female_visits <- female_visits %>%
 #getting lat, lon, and station name from station summary table
   left_join(station_summary, by = c("start_station_id" = "station_id")) %>%
   select(lat, lon, name, start_station_id, total_visits)
+return(visits)
+}
+
+#querying by demographic
+female_visits <- top_10_visits(demographic = "gender", demo_type = "2")
+sub_visits <- top_10_visits(demographic = "user_type", demo_type = "'Subscriber'")
 ```
 
