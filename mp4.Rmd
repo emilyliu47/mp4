@@ -215,6 +215,22 @@ View(customer_hours)
 ```
 
 ```{r}
+hours_fun <- function(hour_arg) {
+  trips %>%
+    mutate(new_start_time = str_extract(start_time, "[0-9]{2}\\:[0-9]{2}\\:[0-9]{2}")) %>%
+    mutate(hour_time = grepl(paste("^", hour_arg, ":", sep =""), new_start_time)) %>%
+    filter(hour_time == "TRUE") %>%
+    summarize(N = n())
+}
+hours_list <- c("00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23")
+everyone_hours <- lapply(hours_list, FUN = hours_fun) %>%
+  bind_rows()
+
+View(everyone_hours)
+
+```
+
+```{r}
 # Spatial data on Leaflet
 female_visits <- top_10_visits(demographic = "gender", demo_type = "2")
 sub_visits <- top_10_visits(demographic = "user_type", demo_type = "'Subscriber'")
