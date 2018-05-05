@@ -137,7 +137,7 @@ station_summary <- db %>%
   dbGetQuery("SELECT *
              FROM station_summary;")
 
-top_10_visits <- function(demographic, demo_type) { #this function takes in a tally of  start and end station visits for a demographic (two tables), and outputs one table that is the 10 most visited (start and end) stations for the demographic
+top_10_visits <- function(demographic, demo_type) { #this function takes in a demographic type and outputs one table that is the 10 most visited (start and end) stations for the demographic
 
 #number of female visits to each start station
 start_tally <- db %>%
@@ -178,5 +178,17 @@ return(visits)
 #querying by demographic
 female_visits <- top_10_visits(demographic = "gender", demo_type = "2")
 sub_visits <- top_10_visits(demographic = "user_type", demo_type = "'Subscriber'")
+```
+
+```{r}
+#finding gender distribution of citibike subscribers
+#14670034 is total number of subs 
+#note: gender is only recorded for subs.
+sub_gender <- db %>%
+  dbGetQuery("
+SELECT gender, sum(1) AS N, sum(1)/14670034 AS percent
+FROM citibike.trips
+WHERE gender != 0
+GROUP BY gender;")
 ```
 
