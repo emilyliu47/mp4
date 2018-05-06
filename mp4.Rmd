@@ -122,7 +122,7 @@ leaflet() %>%
 
 ```{r}
 #finding top 10 most visited stations for everyone
-db %>%
+everyone_visits <- db %>%
   dbGetQuery("
 SELECT *, num_starts + num_stops AS visits
 FROM citibike.station_summary ss
@@ -258,6 +258,7 @@ leaflet() %>%
 
 
 ```{r}
+#calculating tally of visits across all stations 
 hours_fun <- function(hour_arg, demographic, demo_arg) {
   dbGetQuery(db, paste("
 SELECT start_time, user_type, gender
