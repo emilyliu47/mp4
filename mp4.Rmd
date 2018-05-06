@@ -5,6 +5,7 @@ date: "April 28, 2018"
 output: html_document
 ---
 ```{r}
+# Load libraries
 library(mdsr)
 library(RMySQL)
 library(leaflet)
@@ -252,8 +253,40 @@ leaflet() %>%
   addAwesomeMarkers(data = everyone_visits, popup = ~name, icon = everyone_visits_icons, group = "Top 10 Stations for Everyone") %>%
   addLegend("bottomright", colors = c("red", "blue", "orange", "purple", "green"), labels = c("Women", "Men", "Subscribers", "Customers", "Everyone")) %>%
   addLayersControl(overlayGroups = c("Top 10 Stations for Women", "Top 10 Stations for Men", "Top 10 Stations for Subscribers", "Top 10 Stations for Customers", "Top 10 Stations for Everyone"), options = layersControlOptions(collapsed = FALSE))
+```
 
 
+
+```{r}
+hours_fun <- function(hour_arg, demographic, demo_arg) {
+  dbGetQuery(db, paste("
+SELECT start_time, user_type, gender
+FROM citibike.trips
+WHERE", demographic, "=", demo_arg, ";")) %>%
+    mutate(new_start_time = str_extract(start_time, "[0-9]{2}\\:[0-9]{2}\\:[0-9]{2}")) %>%
+    mutate(hour_time = grepl(paste("^", hour_arg, ":", sep =""), new_start_time)) %>%
+    filter(hour_time == "TRUE") %>%
+    summarize(N = n())
+}
+
+hours_list <- c("00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23")
+
+subscriber_hours <- lapply(hours_list, demographic = "user_type", demo_arg = "'Subscriber'", FUN = hours_fun) %>%
+  bind_rows()
+View(subscriber_hours)
+
+customer_hours <- lapply(hours_list, demographic = "user_type", demo_arg = "'Customer'", FUN = hours_fun) %>%
+  bind_rows()
+View(customer_hours)
+
+male_hours <- lapply(hours_list, demographic = "gender", demo_arg = "1", FUN = hours_fun) %>%
+  bind_rows()
+View(male_hours)
+
+female_hours <- lapply(hours_list, demographic = "gender", demo_arg = "2", FUN = hours_fun) %>%
+  bind_rows()
+View(female_hours)
+```
 
 
 
