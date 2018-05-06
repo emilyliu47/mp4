@@ -288,5 +288,22 @@ female_hours <- lapply(hours_list, demographic = "gender", demo_arg = "2", FUN =
 View(female_hours)
 ```
 
-
-
+```{r}
+list_hours <- c("12AM", "1AM", "2AM", "3AM", "4AM", "5AM", "6AM", "7AM", "8AM", "9AM", "10AM", "11AM", "12PM", "1PM", "2PM", "3PM", "4PM", "5PM", "6PM", "7PM", "8PM", "9PM", "10PM", "11PM")
+female_hours$hours <-  list_hours
+female_hours$hours <- factor(female_hours$hours, levels = list_hours)
+ggplot(data = female_hours, aes(x = hours, y = N)) +
+ geom_col()
+male_hours$hours <-  list_hours
+male_hours$hours <- factor(male_hours$hours, levels = list_hours)
+ggplot(data = male_hours, aes(x = hours, y = N)) +
+ geom_col()
+customer_hours$hours <-  list_hours
+customer_hours$hours <- factor(customer_hours$hours, levels = list_hours)
+ggplot(data = customer_hours, aes(x = hours, y = N)) +
+ geom_col()
+subscriber_hours$hours <-  list_hours
+subscriber_hours$hours <- factor(subscriber_hours$hours, levels = list_hours)
+ggplot(data = subscriber_hours, aes(x = hours, y = N)) +
+ geom_col()
+```
