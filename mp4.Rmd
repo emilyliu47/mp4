@@ -312,33 +312,16 @@ list_hours <- c("12AM", "1AM", "2AM", "3AM", "4AM", "5AM", "6AM", "7AM", "8AM", 
 #this function takes in a demographic and uses the results of the lapplies above to create a bar chart of counts for each hour.
 plot_hours <- function(demographic) {
 # adding a column for the x-axis called "hours" 
-demographic_hours$hours <-  list_hours 
-demographic_hours$hours <- factor(demographic_hours$hours, levels = list_hours)
+demographic$hours <-  list_hours 
+demographic$hours <- factor(demographic$hours, levels = list_hours)
 #making a "google trends" -like bar graph, with hours on x and count on y 
-ggplot(data = demographic_hours, aes(x = hours, y = N)) +
+hours_plot <- ggplot(data = demographic, aes(x = hours, y = N)) +
  geom_col()
+hours_plot
 }
 
-plot_hours(demographic = female)
-plot_hours(demographic = male)
-plot_hours(demographic = customer)
-plot_hours(demographic = subscriber)
-
-#if function works, not in use. 
-female_hours$hours <-  list_hours 
-female_hours$hours <- factor(female_hours$hours, levels = list_hours)
-ggplot(data = female_hours, aes(x = hours, y = N)) +
- geom_col()
-male_hours$hours <-  list_hours
-male_hours$hours <- factor(male_hours$hours, levels = list_hours)
-ggplot(data = male_hours, aes(x = hours, y = N)) +
- geom_col()
-customer_hours$hours <-  list_hours
-customer_hours$hours <- factor(customer_hours$hours, levels = list_hours)
-ggplot(data = customer_hours, aes(x = hours, y = N)) +
- geom_col()
-subscriber_hours$hours <-  list_hours
-subscriber_hours$hours <- factor(subscriber_hours$hours, levels = list_hours)
-ggplot(data = subscriber_hours, aes(x = hours, y = N)) +
- geom_col()
+plot_hours(demographic = female_hours)
+plot_hours(demographic = male_hours)
+plot_hours(demographic = customer_hours)
+plot_hours(demographic = subscriber_hours)
 ```
