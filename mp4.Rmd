@@ -4,6 +4,7 @@ author: "Emily Liu, Karina Lieb, and Alexis Kilayko"
 date: "April 28, 2018"
 output: html_document
 ---
+
 ```{r}
 # Load libraries
 library(mdsr)
