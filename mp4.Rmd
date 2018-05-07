@@ -94,6 +94,7 @@ GROUP BY trips.start_station_id
 ORDER BY N desc
 LIMIT 10;")
 ```
+
 ```{r}
 # Points for overall start stations
 all_start_pts <- tribble (
@@ -133,7 +134,7 @@ LIMIT 10;")
 ```{r}
 #station_summary table from database
 station_summary <- db %>%
-  dbGetQuery("SELECT *
+  dbGetQuery("SELECT station_id, name, lat, lon
              FROM station_summary;")
 
 top_10_visits <- function(demographic, demo_type) { #this function takes in a demographic type and outputs one table that is the 10 most visited (start and end) stations for the demographic
