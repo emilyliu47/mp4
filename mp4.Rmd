@@ -11,12 +11,13 @@ library(RMySQL)
 library(leaflet)
 library(sf)
 library(tidyverse)
-
+#connecting to server
 db <- dbConnect_scidb(dbname = "citibike")
 
 ```
 
 ```{r}
+#NOT IN USE
 test_set <- db %>%
           dbGetQuery("SELECT * 
              FROM trips
@@ -33,6 +34,7 @@ test_stations %>%
 ```
 
 ```{r}
+#NOT IN USE
 # Top 10 stations overall
 test_set %>%
   arrange(start_station_id)
@@ -46,6 +48,7 @@ test_set %>%
 ```
 
 ```{r}
+#NOT IN USE
 # Top 10 stations for women
 women_10 <- test_set %>% 
   filter(gender == 2) %>%
@@ -66,6 +69,7 @@ test_set %>%
 ```
 
 ```{r}
+#NOT IN USE
 top_10_women <- women_10 %>%
   left_join(test_stations_sum, by = c("start_station_id" = "station_id"))
 
@@ -73,6 +77,7 @@ View(top_10_women)
 ```
 
 ```{r}
+#NOT IN USE
 #finding top 10 start stations overall
 db %>%
   dbGetQuery("
@@ -96,6 +101,7 @@ LIMIT 10;")
 ```
 
 ```{r}
+#NOT IN USE
 # Points for overall start stations
 all_start_pts <- tribble (
   ~name, ~lat, ~lon,
@@ -132,14 +138,15 @@ LIMIT 10;")
 ```
 
 ```{r}
-#station_summary table from database
+#station_summary table from database -- only selecting columns we need
 station_summary <- db %>%
   dbGetQuery("SELECT station_id, name, lat, lon
              FROM station_summary;")
 
-top_10_visits <- function(demographic, demo_type) { #this function takes in a demographic type and outputs one table that is the 10 most visited (start and end) stations for the demographic
+#this function takes in a demographic type and outputs one table that is the 10 most visited (start and end) stations for the demographic
+top_10_visits <- function(demographic, demo_type) { 
 
-#number of female visits to each start station
+#number of demographic visits to each start station (N_start)
 start_tally <- db %>%
   dbGetQuery(paste("
 SELECT trips.start_station_id, sum(1) AS N_start
@@ -148,7 +155,7 @@ WHERE", demographic, "=",demo_type, "
 GROUP BY trips.start_station_id
 ORDER BY N_start desc;"))
 
-#number of female visits to each end station
+#number of demographic visits to each end station (N_end)
 end_tally <- db %>%
   dbGetQuery(paste("
 SELECT trips.end_station_id, sum(1) AS N_end
