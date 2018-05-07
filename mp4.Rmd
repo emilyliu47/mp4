@@ -125,7 +125,7 @@ leaflet() %>%
 #finding top 10 most visited stations for everyone
 everyone_visits <- db %>%
   dbGetQuery("
-SELECT *, num_starts + num_stops AS visits
+SELECT name, lat, lon, num_starts + num_stops AS visits
 FROM citibike.station_summary ss
 ORDER BY visits desc
 LIMIT 10;")
