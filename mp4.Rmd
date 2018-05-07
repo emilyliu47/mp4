@@ -169,8 +169,9 @@ visits <- full_join(start_tally, end_tally, by = c("start_station_id" = "end_sta
 
 #replacing NA values with 0
 visits$N_start[is.na(visits$N_start)] <- 0
+visits$N_end[is.na(visits$N_end)] <- 0
 
-#calculating total visits by women
+#calculating total visits for each station
 visits <- visits %>%
   mutate(total_visits = N_start + N_end) %>%
   arrange(desc(total_visits)) %>%
@@ -181,15 +182,11 @@ visits <- visits %>%
   select(lat, lon, name, start_station_id, total_visits)
 return(visits)
 }
-
-#querying by demographic
-female_visits <- top_10_visits(demographic = "gender", demo_type = "2")
-sub_visits <- top_10_visits(demographic = "user_type", demo_type = "'Subscriber'")
 ```
 
 ```{r}
 #finding gender distribution of citibike subscribers
-#14670034 is total number of subs 
+#14670034 is total number of subs (male + female)
 #note: gender is only recorded for subs.
 sub_gender <- db %>%
   dbGetQuery("
@@ -200,11 +197,39 @@ GROUP BY gender;")
 ```
 
 ```{r}
-trips <- dbGetQuery(db, "SELECT start_time, user_type
-FROM citibike.trips;")
+# Spatial data on Leaflet -- plotting top 10 most visited stations for everyone, men, women, subs, and customers. 
+
+#querying by demographic using top_10_visits function to find top 10 stations for each demo
+female_visits <- top_10_visits(demographic = "gender", demo_type = "2")
+sub_visits <- top_10_visits(demographic = "user_type", demo_type = "'Subscriber'")
+male_visits <- top_10_visits(demographic = "gender", demo_type = "1")
+cust_visits <- top_10_visits(demographic = "user_type", demo_type = "'Customer'")
+
+#setting up icon appearances
+female_visits_icons <- awesomeIcons(library = 'fa', icon = 'bicycle', markerColor = "red", iconColor = "ivory")
+
+male_visits_icons <- awesomeIcons(library = 'fa', icon = 'bicycle', markerColor = "blue", iconColor = "ivory")
+
+sub_visits_icons <- awesomeIcons(library = 'fa', icon = 'bicycle', markerColor = "orange", iconColor = "black") 
+
+cust_visits_icons <- awesomeIcons(library = 'fa', icon = 'bicycle', markerColor = "darkpurple", iconColor = "ivory")
+
+everyone_visits_icons <- awesomeIcons(library = 'fa', icon = 'bicycle', markerColor = "green", iconColor = "ivory")
+
+#plotting using leaflet!
+leaflet() %>%
+  addTiles() %>%
+  addAwesomeMarkers(data = female_visits, popup = ~name, icon = female_visits_icons, group = "Top 10 Stations for Women") %>%
+  addAwesomeMarkers(data = male_visits, popup = ~name, icon = male_visits_icons, group = "Top 10 Stations for Men") %>%
+  addAwesomeMarkers(data = sub_visits, popup = ~name, icon = sub_visits_icons, group = "Top 10 Stations for Subscribers") %>%
+  addAwesomeMarkers(data = cust_visits, popup = ~name, icon = cust_visits_icons, group = "Top 10 Stations for Customers") %>%
+  addAwesomeMarkers(data = everyone_visits, popup = ~name, icon = everyone_visits_icons, group = "Top 10 Stations for Everyone") %>%
+  addLegend("bottomright", colors = c("red", "blue", "orange", "purple", "green"), labels = c("Women", "Men", "Subscribers", "Customers", "Everyone")) %>%
+  addLayersControl(overlayGroups = c("Top 10 Stations for Women", "Top 10 Stations for Men", "Top 10 Stations for Subscribers", "Top 10 Stations for Customers", "Top 10 Stations for Everyone"), options = layersControlOptions(collapsed = FALSE))
 ```
 
 ```{r}
+#NOT IN USE
 hours_fun <- function(hour_arg, user_arg) {
   trips %>%
     mutate(new_start_time = str_extract(start_time, "[0-9]{2}\\:[0-9]{2}\\:[0-9]{2}")) %>%
@@ -224,6 +249,10 @@ View(customer_hours)
 ```
 
 ```{r}
+#getting start times for everyone across all stations
+trips <- dbGetQuery(db, "SELECT start_time
+FROM citibike.trips;")
+# this function calculates the number of visits for a given hour across all stations for the whole year
 hours_fun <- function(hour_arg) {
   trips %>%
     mutate(new_start_time = str_extract(start_time, "[0-9]{2}\\:[0-9]{2}\\:[0-9]{2}")) %>%
@@ -231,42 +260,17 @@ hours_fun <- function(hour_arg) {
     filter(hour_time == "TRUE") %>%
     summarize(N = n())
 }
+
+#applies the above function over a whole day's worth of hours
 hours_list <- c("00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23")
-everyone_hours <- lapply(hours_list, FUN = hours_fun) %>%
-  bind_rows()
+everyone_hours <- lapply(hours_list, FUN = hours_fun) %>% 
+  bind_rows() #takes the separate tables outputted by the lapply and makes them into 1
 
 View(everyone_hours)
-
 ```
 
 ```{r}
-# Spatial data on Leaflet
-female_visits <- top_10_visits(demographic = "gender", demo_type = "2")
-sub_visits <- top_10_visits(demographic = "user_type", demo_type = "'Subscriber'")
-male_visits <- top_10_visits(demographic = "gender", demo_type = "1")
-cust_visits <- top_10_visits(demographic = "user_type", demo_type = "'Customer'")
-
-female_visits_icons <- awesomeIcons(library = 'fa', icon = 'bicycle', markerColor = "red", iconColor = "ivory")
-male_visits_icons <- awesomeIcons(library = 'fa', icon = 'bicycle', markerColor = "blue", iconColor = "ivory")
-sub_visits_icons <- awesomeIcons(library = 'fa', icon = 'bicycle', markerColor = "orange", iconColor = "black") 
-cust_visits_icons <- awesomeIcons(library = 'fa', icon = 'bicycle', markerColor = "darkpurple", iconColor = "ivory")
-everyone_visits_icons <- awesomeIcons(library = 'fa', icon = 'bicycle', markerColor = "green", iconColor = "ivory")
-
-leaflet() %>%
-  addTiles() %>%
-  addAwesomeMarkers(data = female_visits, popup = ~name, icon = female_visits_icons, group = "Top 10 Stations for Women") %>%
-  addAwesomeMarkers(data = male_visits, popup = ~name, icon = male_visits_icons, group = "Top 10 Stations for Men") %>%
-  addAwesomeMarkers(data = sub_visits, popup = ~name, icon = sub_visits_icons, group = "Top 10 Stations for Subscribers") %>%
-  addAwesomeMarkers(data = cust_visits, popup = ~name, icon = cust_visits_icons, group = "Top 10 Stations for Customers") %>%
-  addAwesomeMarkers(data = everyone_visits, popup = ~name, icon = everyone_visits_icons, group = "Top 10 Stations for Everyone") %>%
-  addLegend("bottomright", colors = c("red", "blue", "orange", "purple", "green"), labels = c("Women", "Men", "Subscribers", "Customers", "Everyone")) %>%
-  addLayersControl(overlayGroups = c("Top 10 Stations for Women", "Top 10 Stations for Men", "Top 10 Stations for Subscribers", "Top 10 Stations for Customers", "Top 10 Stations for Everyone"), options = layersControlOptions(collapsed = FALSE))
-```
-
-
-
-```{r}
-#calculating tally of visits across all stations 
+# this function calculates the number of visits for a given hour across all stations for the whole year FOR A DEMOGRAPHIC
 hours_fun <- function(hour_arg, demographic, demo_arg) {
   dbGetQuery(db, paste("
 SELECT start_time, user_type, gender
@@ -278,20 +282,25 @@ WHERE", demographic, "=", demo_arg, ";")) %>%
     summarize(N = n())
 }
 
+# lapply() applies the above function over a whole day's worth of hours
 hours_list <- c("00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23")
 
+#outputs a table with visits per hour across all stations for the year FOR SUBSCRIBERS
 subscriber_hours <- lapply(hours_list, demographic = "user_type", demo_arg = "'Subscriber'", FUN = hours_fun) %>%
-  bind_rows()
+  bind_rows() #takes the separate tables outputted by the lapply and makes them into 1
 View(subscriber_hours)
 
+#outputs a table with visits per hour across all stations for the year FOR CUSTOMERS
 customer_hours <- lapply(hours_list, demographic = "user_type", demo_arg = "'Customer'", FUN = hours_fun) %>%
   bind_rows()
 View(customer_hours)
 
+#outputs a table with visits per hour across all stations for the year FOR MALES
 male_hours <- lapply(hours_list, demographic = "gender", demo_arg = "1", FUN = hours_fun) %>%
   bind_rows()
 View(male_hours)
 
+#outputs a table with visits per hour across all stations for the year FOR FEMALES
 female_hours <- lapply(hours_list, demographic = "gender", demo_arg = "2", FUN = hours_fun) %>%
   bind_rows()
 View(female_hours)
@@ -299,7 +308,24 @@ View(female_hours)
 
 ```{r}
 list_hours <- c("12AM", "1AM", "2AM", "3AM", "4AM", "5AM", "6AM", "7AM", "8AM", "9AM", "10AM", "11AM", "12PM", "1PM", "2PM", "3PM", "4PM", "5PM", "6PM", "7PM", "8PM", "9PM", "10PM", "11PM")
-female_hours$hours <-  list_hours
+
+#this function takes in a demographic and uses the results of the lapplies above to create a bar chart of counts for each hour.
+plot_hours <- function(demographic) {
+# adding a column for the x-axis called "hours" 
+demographic_hours$hours <-  list_hours 
+demographic_hours$hours <- factor(demographic_hours$hours, levels = list_hours)
+#making a "google trends" -like bar graph, with hours on x and count on y 
+ggplot(data = demographic_hours, aes(x = hours, y = N)) +
+ geom_col()
+}
+
+plot_hours(demographic = female)
+plot_hours(demographic = male)
+plot_hours(demographic = customer)
+plot_hours(demographic = subscriber)
+
+#if function works, not in use. 
+female_hours$hours <-  list_hours 
 female_hours$hours <- factor(female_hours$hours, levels = list_hours)
 ggplot(data = female_hours, aes(x = hours, y = N)) +
  geom_col()
