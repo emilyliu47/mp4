@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r}
-# Load libraries
+#load libraries
 library(mdsr)
 library(RMySQL)
 library(leaflet)
@@ -16,117 +16,6 @@ library(lubridate)
 #connecting to server
 db <- dbConnect_scidb(dbname = "citibike")
 ```
-
-```{r}
-#NOT IN USE
-test_set <- db %>%
-          dbGetQuery("SELECT * 
-             FROM trips
-             LIMIT 100;")
-test_set
-
-test_stations <- db %>%
-  dbGetQuery("SELECT *
-             FROM station_months;")
-
-test_stations %>%
-  distinct(station_id) %>%
-  arrange(station_id)
-```
-
-```{r}
-#NOT IN USE
-# Top 10 stations overall
-test_set %>%
-  arrange(start_station_id)
-test_set %>% 
-  select(start_station_id) %>%
-  group_by(start_station_id) %>%
-  summarize(N = n()) %>%
-  arrange(desc(N)) %>%
-  head(10)
-  
-```
-
-```{r}
-#NOT IN USE
-# Top 10 stations for women
-women_10 <- test_set %>% 
-  filter(gender == 2) %>%
-  select(start_station_id) %>%
-  group_by(start_station_id) %>%
-  summarize(N = n()) %>%
-  arrange(desc(N)) %>%
-  head(10)
-
-# Top 10 stations for subscribers
-test_set %>% 
-  filter(user_type == 'Subscriber') %>%
-  select(start_station_id) %>%
-  group_by(start_station_id) %>%
-  summarize(N = n()) %>%
-  arrange(desc(N)) %>%
-  head(10)
-```
-
-```{r}
-#NOT IN USE
-top_10_women <- women_10 %>%
-  left_join(test_stations_sum, by = c("start_station_id" = "station_id"))
-
-View(top_10_women)
-```
-
-```{r}
-#NOT IN USE
-#finding top 10 start stations overall
-db %>%
-  dbGetQuery("
-SELECT trips.start_station_id,  ss.name, ss.lat, ss.lon, sum(1) AS N
-FROM citibike.trips
-JOIN citibike.station_summary ss ON trips.start_station_id = ss.station_id
-GROUP BY trips.start_station_id
-ORDER BY N desc
-LIMIT 10;")
-
-#finding top 10 start stations visited by women
-db %>%
-  dbGetQuery("
-SELECT trips.start_station_id,  ss.name, ss.lat, ss.lon, sum(1) AS N
-FROM citibike.trips
-JOIN citibike.station_summary ss ON trips.start_station_id = ss.station_id
-WHERE gender = 2
-GROUP BY trips.start_station_id
-ORDER BY N desc
-LIMIT 10;")
-```
-
-```{r}
-#NOT IN USE
-# Points for overall start stations
-all_start_pts <- tribble (
-  ~name, ~lat, ~lon,
-  "Pershing Square North", -73.97771, 40.75187,
-  "E 17 St & Broadway", -73.99009, 40.73705,
-  "Broadway & E 22 St", -73.98955, 40.74034,
-  "W 21 St & 6 Ave", -73.99416, 40.74174,
-  "West St & Chambers St", -74.01322, 40.71755,
-  "8 Ave & W 31 St", -73.99468, 40.75059,
-  "8 Ave & W 33 St", -73.99393, 40.75155,
-  "W 20 St & 11 Ave", -74.00776, 40.74674,
-  "12 Ave & W 40 St", -74.00278, 40.76088,
-  "W 41 St & 8 Ave", -73.99003, 40.75461
-)
-
-all_start_sf <- all_start_pts %>%
-  st_as_sf(coords = c("lat", "lon")) %>%
-  st_set_crs(4326)
-
-leaflet() %>%
-  addTiles() %>%
-  addMarkers(data = all_start_sf, popup = ~name)
-```
-
 
 ```{r}
 #finding top 10 most visited stations for everyone
@@ -198,7 +87,7 @@ GROUP BY gender;")
 ```
 
 ```{r}
-# Spatial data on Leaflet -- plotting top 10 most visited stations for everyone, men, women, subs, and customers. 
+#spatial data on Leaflet -- plotting top 10 most visited stations for everyone, men, women, subs, and customers
 
 #querying by demographic using top_10_visits function to find top 10 stations for each demo
 female_visits <- top_10_visits(demographic = "gender", demo_type = "2")
@@ -230,30 +119,10 @@ leaflet() %>%
 ```
 
 ```{r}
-#NOT IN USE
-hours_fun <- function(hour_arg, user_arg) {
-  trips %>%
-    mutate(new_start_time = str_extract(start_time, "[0-9]{2}\\:[0-9]{2}\\:[0-9]{2}")) %>%
-    mutate(hour_time = grepl(paste("^", hour_arg, ":", sep =""), new_start_time)) %>%
-    filter(hour_time == "TRUE") %>%
-    filter(user_type == user_arg) %>%
-    summarize(N = n())
-}
-hours_list <- c("00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23")
-subscriber_hours <- lapply(hours_list, user_arg = "Subscriber", FUN = hours_fun) %>%
-  bind_rows()
-customer_hours <- lapply(hours_list, user_arg = "Customer", FUN = hours_fun) %>%
-  bind_rows()
-
-View(subscriber_hours)
-View(customer_hours)
-```
-
-```{r}
 #getting start times for everyone across all stations
 trips <- dbGetQuery(db, "SELECT start_time
 FROM citibike.trips;")
-# this function calculates the number of visits per every hour of the day for the whole year across all stations
+#this function calculates the number of visits per every hour of the day for the whole year across all stations
 everyone_hours <- trips %>%
   select(start_time) %>%
   mutate(new_start_time = as_datetime(start_time)) %>%
@@ -264,7 +133,7 @@ View(everyone_hours)
 ```
 
 ```{r}
-# this function calculates the number of visits per every hour of the day for the whole year across all stations FOR A DEMOGRAPHIC
+#this function calculates the number of visits per every hour of the day for the whole year across all stations FOR A DEMOGRAPHIC
 hours_fun <- function(hour_arg, demographic, demo_arg) {
   dbGetQuery(db, paste("
 SELECT start_time, user_type, gender
@@ -295,15 +164,16 @@ View(female_hours)
 
 ```{r}
 #this function takes in a demographic and uses the results of the lapplies above to create a bar chart of counts for each hour.
-plot_hours <- function(demographic) {
+plot_hours <- function(demographic, title) {
 #making a "google trends" -like bar graph, with hours on x and count on y 
 hours_plot <- ggplot(data = demographic, aes(x = hour_time, y = N)) +
- geom_col()
+  geom_col() +
+  ggtitle(title)
 hours_plot
 }
 
-plot_hours(demographic = female_hours)
-plot_hours(demographic = male_hours)
-plot_hours(demographic = customer_hours)
-plot_hours(demographic = subscriber_hours)
+plot_hours(demographic = female_hours, title = "Female Hours")
+plot_hours(demographic = male_hours, title = "Male Hours")
+plot_hours(demographic = customer_hours, title = "Customer Hours")
+plot_hours(demographic = subscriber_hours, title = "Subscriber Hours")
 ```
