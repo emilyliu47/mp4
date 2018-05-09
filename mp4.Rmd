@@ -18,6 +18,35 @@ db <- dbConnect_scidb(dbname = "citibike")
 ```
 
 ```{r}
+# Number of visits made by subscribers and customers
+db %>%
+  dbGetQuery("SELECT count(*)
+FROM citibike.trips
+WHERE user_type = 'Subscriber';") # 14,579,325 --> 89.18%
+
+db %>%
+  dbGetQuery("SELECT count(*)
+FROM citibike.trips
+WHERE user_type = 'Customer';") # 1,769,423 --> 10.82%
+
+
+# Dates of Citibike data
+# Earliest date
+db %>%
+  dbGetQuery("SELECT earliest, latest
+FROM citibike.station_months
+ORDER BY earliest
+LIMIT 10;") # 2017-01-01
+
+# Latest date
+db %>%
+  dbGetQuery("SELECT earliest, latest
+FROM citibike.station_months
+ORDER BY latest DESC
+LIMIT 10;") # 2018-01-30
+```
+
+```{r}
 #finding top 10 most visited stations for everyone
 everyone_visits <- db %>%
   dbGetQuery("
