@@ -14,7 +14,7 @@ output:
 library(mdsr)
 library(RMySQL)
 library(leaflet)
-library(sf)
+#library(sf)
 library(tidyverse)
 library(lubridate)
 library(scales)
