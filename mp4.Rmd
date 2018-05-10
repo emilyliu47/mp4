@@ -2,10 +2,14 @@
 title: "Mini-Project 4"
 author: "Emily Liu, Karina Lieb, and Alexis Kilayko"
 date: "April 28, 2018"
-output: html_document
+output: 
+  html_document:
+    code_folding: hide
+    theme: "flatly"
+    highlight: "tango"
 ---
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 #load libraries
 library(mdsr)
 library(RMySQL)
@@ -18,7 +22,7 @@ library(scales)
 db <- dbConnect_scidb(dbname = "citibike")
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # Number of visits made by subscribers and customers
 db %>%
   dbGetQuery("SELECT count(*)
@@ -47,7 +51,7 @@ ORDER BY latest DESC
 LIMIT 10;") # 2018-01-30
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 #finding top 10 most visited stations for everyone
 everyone_visits <- db %>%
   dbGetQuery("
@@ -57,7 +61,7 @@ ORDER BY visits desc
 LIMIT 10;")
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 #station_summary table from database -- only selecting columns we need
 station_summary <- db %>%
   dbGetQuery("SELECT station_id, name, lat, lon
@@ -104,7 +108,7 @@ return(visits)
 }
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 #finding gender distribution of citibike subscribers
 #14670034 is total number of subs (male + female)
 #note: gender is only recorded for subs.
@@ -116,7 +120,7 @@ WHERE gender != 0
 GROUP BY gender;")
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 #spatial data on Leaflet -- plotting top 10 most visited stations for everyone, men, women, subs, and customers
 
 #querying by demographic using top_10_visits function to find top 10 stations for each demo
@@ -148,7 +152,7 @@ leaflet() %>%
   addLayersControl(overlayGroups = c("Top 10 Stations for Women", "Top 10 Stations for Men", "Top 10 Stations for Subscribers", "Top 10 Stations for Customers", "Top 10 Stations for Everyone"), options = layersControlOptions(collapsed = FALSE))
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 #getting start times for everyone across all stations
 trips <- dbGetQuery(db, "SELECT start_time
 FROM citibike.trips;")
@@ -162,7 +166,7 @@ everyone_hours <- trips %>%
 View(everyone_hours)
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 #this function calculates the number of visits per every hour of the day for the whole year across all stations FOR A DEMOGRAPHIC
 hours_fun <- function(hour_arg, demographic, demo_arg) {
   dbGetQuery(db, paste("
@@ -177,22 +181,18 @@ WHERE", demographic, "=", demo_arg, ";")) %>%
 
 #outputs a table with visits per hour across all stations for the year FOR SUBSCRIBERS
 subscriber_hours <- hours_fun(demographic = "user_type", demo_arg = "'Subscriber'")
-View(subscriber_hours)
 
 #outputs a table with visits per hour across all stations for the year FOR CUSTOMERS
 customer_hours <- hours_fun(demographic = "user_type", demo_arg = "'Customer'")
-View(customer_hours)
 
 #outputs a table with visits per hour across all stations for the year FOR MALES
 male_hours <- hours_fun(demographic = "gender", demo_arg = "1")
-View(male_hours)
 
 #outputs a table with visits per hour across all stations for the year FOR FEMALES
 female_hours <- hours_fun(demographic = "gender", demo_arg = "2")
-View(female_hours)
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 #this function takes in a demographic and uses the results of the lapplies above to create a bar chart of counts for each hour.
 plot_hours <- function(demographic, title, color) {
 #making a "google trends" -like bar graph, with hours on x and count on y 
@@ -211,3 +211,6 @@ plot_hours(demographic = male_hours, title = "Male Hours", color = "blue")
 plot_hours(demographic = customer_hours, title = "Customer Hours", color = "gold")
 plot_hours(demographic = subscriber_hours, title = "Subscriber Hours", color = "purple")
 ```
+
+
+
