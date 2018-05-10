@@ -13,6 +13,7 @@ library(leaflet)
 library(sf)
 library(tidyverse)
 library(lubridate)
+library(scales)
 #connecting to server
 db <- dbConnect_scidb(dbname = "citibike")
 ```
@@ -193,16 +194,20 @@ View(female_hours)
 
 ```{r}
 #this function takes in a demographic and uses the results of the lapplies above to create a bar chart of counts for each hour.
-plot_hours <- function(demographic, title) {
+plot_hours <- function(demographic, title, color) {
 #making a "google trends" -like bar graph, with hours on x and count on y 
 hours_plot <- ggplot(data = demographic, aes(x = hour_time, y = N)) +
-  geom_col() +
-  ggtitle(title)
+  geom_col(fill = color) +
+  ggtitle(title) +
+  xlab(label = "Time Distribution (24-hour days)") + 
+  ylab(label = "Number of Visits") +
+  scale_y_continuous(labels = comma) +
+  theme_minimal()
 hours_plot
 }
 
-plot_hours(demographic = female_hours, title = "Female Hours")
-plot_hours(demographic = male_hours, title = "Male Hours")
-plot_hours(demographic = customer_hours, title = "Customer Hours")
-plot_hours(demographic = subscriber_hours, title = "Subscriber Hours")
+plot_hours(demographic = female_hours, title = "Female Hours", color = "red")
+plot_hours(demographic = male_hours, title = "Male Hours", color = "blue")
+plot_hours(demographic = customer_hours, title = "Customer Hours", color = "gold")
+plot_hours(demographic = subscriber_hours, title = "Subscriber Hours", color = "purple")
 ```
