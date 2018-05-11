@@ -231,7 +231,7 @@ leaflet() %>%
   addLayersControl(overlayGroups = c("Top 10 Stations for Women", "Top 10 Stations for Men", "Top 10 Stations for Subscribers", "Top 10 Stations for Customers", "Top 10 Stations for Everyone"), options = layersControlOptions(collapsed = FALSE))
 ```
 
-Additionally, we plotted the 10 most visited stations overall and for each demographic on an interactive map. Customers are generally concentrated in the Central Park area, with 6 out of their top 10 stations located there. It is likely that they are using Citibike to have a scenic ride around the park. The other stations were either in recreational areas like parks or sports centers, or near transportation hubs like the Brooklyn Bridge, which also doubles as a tourist spot. 
+Additionally, we plotted the 10 most visited stations overall and for each demographic on an interactive map. All of the most visited stations are in Manhattan, the epicenter of NYC. Customers are generally concentrated in the Central Park area, with 6 out of their top 10 stations located there. It is likely that they are using Citibike to have a scenic ride around the park. The other stations were either in recreational areas like parks or sports centers, or near transportation hubs like the Brooklyn Bridge, which also doubles as a tourist spot. 
 
 ![Tourists enjoy a riverside ride in NYC on their Citibikes.](https://d21xlh2maitm24.cloudfront.net/nyc/day-passes.png?mtime=20170331123924)
 
