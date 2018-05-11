@@ -1,13 +1,20 @@
 ---
-title: "Mini-Project 4"
+#NOTE: this will take about 4 minutes to knit! 
+title: "How Gender Can Affect Our Daily Commutes"
+subtitle: "And other demographic findings from Citibike data"
 author: "Emily Liu, Karina Lieb, and Alexis Kilayko"
-date: "April 28, 2018"
+date: "May 10, 2018"
 output: 
   html_document:
     code_folding: hide
     theme: "flatly"
     highlight: "tango"
 ---
+If you’ve ever been to NYC or Jersey City, you have likely seen long rows of bright blue bikes lined up along some city streets. Maybe you’ve even taken a ride, or used one on your way to work. These are a part of the [Citibike](https://en.wikipedia.org/wiki/Citi_Bike) bike-sharing system, a network of over 12,000 communal bikes with over 800 stations all of the boroughs and Jersey City. Between January 1, 2017 and January 30, 2018, there were 16 million check-ins at Citibike stations. 
+	
+![A Citibike Station in NYC.](https://upload.wikimedia.org/wikipedia/commons/1/16/E53_St_Citibike_station_loaded_jeh.jpg)
+
+Using data collected about the stations and types of people who use them, we wanted to find out: Who is using Citibike the most? Does a user’s gender or customer/subscriber status affect the stations they use? What about the times they use them? We’ve worked with MySQL , R and GitHub[^1]  to help analyze the data and answer these questions. 
 
 ```{r, message=FALSE, warning=FALSE}
 #load libraries
@@ -22,7 +29,7 @@ library(scales)
 db <- dbConnect_scidb(dbname = "citibike")
 ```
 
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE, eval = FALSE}
 # Number of visits made by subscribers and customers
 db %>%
   dbGetQuery("SELECT count(*)
@@ -51,6 +58,89 @@ ORDER BY latest DESC
 LIMIT 10;") # 2018-01-30
 ```
 
+```{r, message=FALSE, warning=FALSE}
+#finding gender distribution of citibike subscribers
+#14670034 is total number of subs (male + female)
+#note: gender is only recorded for subs.
+sub_gender <- db %>%
+  dbGetQuery("
+SELECT gender, sum(1) AS N, sum(1)/14670034 AS percent
+FROM citibike.trips
+WHERE gender != 0
+GROUP BY gender;")
+#0.7468 for men,
+#0.2532 for women
+```
+
+Initially, we found that the overwhelming majority, 89.18%, of visits over all stations were made by subscribers and the remaining 10.82% were made by customers (non-subscribers). This could be from typical pricing plan behavior. It’s inevitably cheaper to subscribe to Citibike if you use it more frequently. Additionally, once people buy a plan they may be incentivized to use it more often to get their money’s worth. Of subscriber visits, only 25% of them were made by women. What could be causing this large gender disparity?
+
+```{r, message=FALSE, warning=FALSE}
+#getting start times for everyone across all stations
+trips <- dbGetQuery(db, "SELECT start_time
+FROM citibike.trips;")
+#calculates the number of visits per every hour of the day for the whole year across all stations
+everyone_hours <- trips %>%
+  select(start_time) %>%
+  mutate(new_start_time = as_datetime(start_time)) %>%
+  mutate(hour_time = hour(new_start_time)) %>%
+  group_by(hour_time) %>%
+  summarize(N = n())
+```
+
+```{r, message=FALSE, warning=FALSE}
+#this function calculates the number of visits per every hour of the day for the whole year across all stations FOR A DEMOGRAPHIC
+hours_fun <- function(hour_arg, demographic, demo_arg) {
+  dbGetQuery(db, paste("
+SELECT start_time, user_type, gender
+FROM citibike.trips
+WHERE", demographic, "=", demo_arg, ";")) %>%
+  mutate(new_start_time = as_datetime(start_time)) %>%
+  mutate(hour_time = hour(new_start_time)) %>%
+  group_by(hour_time) %>%
+  summarize(N = n())
+}
+
+#outputs a table with visits per hour across all stations for the year FOR SUBSCRIBERS
+subscriber_hours <- hours_fun(demographic = "user_type", demo_arg = "'Subscriber'")
+
+#outputs a table with visits per hour across all stations for the year FOR CUSTOMERS
+customer_hours <- hours_fun(demographic = "user_type", demo_arg = "'Customer'")
+
+#outputs a table with visits per hour across all stations for the year FOR MALES
+male_hours <- hours_fun(demographic = "gender", demo_arg = "1")
+
+#outputs a table with visits per hour across all stations for the year FOR FEMALES
+female_hours <- hours_fun(demographic = "gender", demo_arg = "2")
+```
+
+Using Citibike data, we created graphics for the number of visits to all stations per every hour of the day for the whole year. We broke this visiting data down by gender and customer/subscriber status. 
+
+```{r, message=FALSE, warning=FALSE}
+#this function takes in a demographic and uses the results of the function above to create a bar chart of counts for each hour.
+plot_hours <- function(demographic, title, color) {
+#making a "google trends" -like bar graph, with hours on x and count on y 
+hours_plot <- ggplot(data = demographic, aes(x = hour_time, y = N)) +
+  geom_col(fill = color) +
+  ggtitle(title) +
+  xlab(label = "Time Distribution (24-hour days)") + 
+  ylab(label = "Number of Visits") +
+  scale_y_continuous(labels = comma) +
+  theme_minimal()
+hours_plot
+}
+
+plot_hours(demographic = female_hours, title = "Female Hours", color = "red")
+plot_hours(demographic = male_hours, title = "Male Hours", color = "blue")
+plot_hours(demographic = customer_hours, title = "Customer Hours", color = "gold")
+plot_hours(demographic = subscriber_hours, title = "Subscriber Hours", color = "purple")
+```
+
+The male, female, and subscriber hour distributions look very similar, due to the fact that all people with a recorded gender are subscribers. This also indicates that male and female subscribers use bikes at the same time, probably for the same purpose of commuting. Subscribers overall had distributions around normal rush hour times--peaks at 8:00 AM when people usually go to work and 5:00-6:00 PM when people go home. Customers had a very different distribution, with a bell curve-esque peak around 3:00 PM. A reason for this may be that subscribers use Citibike for their commute, while customers use them for recreational purposes, and do not have the strict constraints on their time that workers do.  
+
+
+This hypothesis that subscribers are usually commuters could be the reason why so few subscribers are female. Commuting women have to wear professional clothing may be too restricting for bikes. This includes slim pencil skirts, high heels, carefully done hairstyles, and purses. None of these are conducive to riding bicycles. Men’s professional wear is much freer--backpacks, pants, flat-heeled shoes--and are also not expected to care for their personal appearances to the same extent, so it might be easier for them to cycle to work. 
+
+![A male commuter using Citibike (with typical business casual menswear).](http://gudphoto.com/bikenyc/wp-content/uploads/2013/05/joe-zaro-citi-bike-blog.jpg)
 ```{r, message=FALSE, warning=FALSE}
 #finding top 10 most visited stations for everyone
 everyone_visits <- db %>%
@@ -108,17 +198,6 @@ return(visits)
 }
 ```
 
-```{r, message=FALSE, warning=FALSE}
-#finding gender distribution of citibike subscribers
-#14670034 is total number of subs (male + female)
-#note: gender is only recorded for subs.
-sub_gender <- db %>%
-  dbGetQuery("
-SELECT gender, sum(1) AS N, sum(1)/14670034 AS percent
-FROM citibike.trips
-WHERE gender != 0
-GROUP BY gender;")
-```
 
 ```{r, message=FALSE, warning=FALSE}
 #spatial data on Leaflet -- plotting top 10 most visited stations for everyone, men, women, subs, and customers
@@ -152,65 +231,20 @@ leaflet() %>%
   addLayersControl(overlayGroups = c("Top 10 Stations for Women", "Top 10 Stations for Men", "Top 10 Stations for Subscribers", "Top 10 Stations for Customers", "Top 10 Stations for Everyone"), options = layersControlOptions(collapsed = FALSE))
 ```
 
-```{r, message=FALSE, warning=FALSE}
-#getting start times for everyone across all stations
-trips <- dbGetQuery(db, "SELECT start_time
-FROM citibike.trips;")
-#this function calculates the number of visits per every hour of the day for the whole year across all stations
-everyone_hours <- trips %>%
-  select(start_time) %>%
-  mutate(new_start_time = as_datetime(start_time)) %>%
-  mutate(hour_time = hour(new_start_time)) %>%
-  group_by(hour_time) %>%
-  summarize(N = n())
-View(everyone_hours)
-```
+Additionally, we plotted the 10 most visited stations overall and for each demographic on an interactive map. Customers are generally concentrated in the Central Park area, with 6 out of their top 10 stations located there. It is likely that they are using Citibike to have a scenic ride around the park. The other stations were either in recreational areas like parks or sports centers, or near transportation hubs like the Brooklyn Bridge, which also doubles as a tourist spot. 
 
-```{r, message=FALSE, warning=FALSE}
-#this function calculates the number of visits per every hour of the day for the whole year across all stations FOR A DEMOGRAPHIC
-hours_fun <- function(hour_arg, demographic, demo_arg) {
-  dbGetQuery(db, paste("
-SELECT start_time, user_type, gender
-FROM citibike.trips
-WHERE", demographic, "=", demo_arg, ";")) %>%
-  mutate(new_start_time = as_datetime(start_time)) %>%
-  mutate(hour_time = hour(new_start_time)) %>%
-  group_by(hour_time) %>%
-  summarize(N = n())
-}
+![Tourists enjoy a riverside ride in NYC on their Citibikes.](https://d21xlh2maitm24.cloudfront.net/nyc/day-passes.png?mtime=20170331123924)
 
-#outputs a table with visits per hour across all stations for the year FOR SUBSCRIBERS
-subscriber_hours <- hours_fun(demographic = "user_type", demo_arg = "'Subscriber'")
+The top subscriber stations can be divided into three groups. Five stations are near large transportation hubs--Port Authority, Grand Central Station, and Penn Station. This fits in with our earlier hypothesis about hours distributions. If subscribers are generally commuting to work, then it makes sense that half of the top 10 stations are near large train stations. So, Citibike may represent just one leg of subscriber commutes. This may be because using both Citibike and the subway offers more flexibility than using just one transportation option. There are only so many train stations and Citibike stations, but combining the two gives more options to get from point A to point B in Manhattan. 
 
-#outputs a table with visits per hour across all stations for the year FOR CUSTOMERS
-customer_hours <- hours_fun(demographic = "user_type", demo_arg = "'Customer'")
-
-#outputs a table with visits per hour across all stations for the year FOR MALES
-male_hours <- hours_fun(demographic = "gender", demo_arg = "1")
-
-#outputs a table with visits per hour across all stations for the year FOR FEMALES
-female_hours <- hours_fun(demographic = "gender", demo_arg = "2")
-```
-
-```{r, message=FALSE, warning=FALSE}
-#this function takes in a demographic and uses the results of the lapplies above to create a bar chart of counts for each hour.
-plot_hours <- function(demographic, title, color) {
-#making a "google trends" -like bar graph, with hours on x and count on y 
-hours_plot <- ggplot(data = demographic, aes(x = hour_time, y = N)) +
-  geom_col(fill = color) +
-  ggtitle(title) +
-  xlab(label = "Time Distribution (24-hour days)") + 
-  ylab(label = "Number of Visits") +
-  scale_y_continuous(labels = comma) +
-  theme_minimal()
-hours_plot
-}
-
-plot_hours(demographic = female_hours, title = "Female Hours", color = "red")
-plot_hours(demographic = male_hours, title = "Male Hours", color = "blue")
-plot_hours(demographic = customer_hours, title = "Customer Hours", color = "gold")
-plot_hours(demographic = subscriber_hours, title = "Subscriber Hours", color = "purple")
-```
+Three other top 10 subscriber stations are in the Flatiron district, which is considered the [“Silicon Alley”](https://en.wikipedia.org/wiki/Silicon_Alley) of New York as it is a large technology sector. A large number of subscribers could work in the tech industry, which may have implications for advertising campaigns if Citibike wanted to expand its user base. One station is near the Chelsea Piers, a recreational area with workout options like swimming pools. The last is near [Rockefeller Park](https://bpcparks.org/whats-here/parks/rockefeller-park/), several schools, and a library. This is also the only point of overlap between customers and subscribers, likely because of the draw of Rockefeller Park for tourists or a day visit by residents. 
 
 
+The top 10 stations for men and women were in different parts of Manhattan with some overlap. For women, many stations seem to be concentrated in retail areas. Men use stations in the Garment District and near the train stations Penn Station and Port Authority. Why are women going to transport stations less than men? Both demographics have Grand Central Station in their top 10 lists, but that is the only major transport hub for women. 
+
+One hypothesis is that men are using Citibike for commuting so they frequent transport stations more, while women are using it for recreational or one-off events. Another alternate hypothesis is that women using Citibike are working at retail industries--taking in the similar hours distribution to men--and so their dress code may be less restricting, either being more utilitarian or involving more comfortable shoes. They’re still commuting to work, but not using train stations as an intermediary as men do since their places of work are accessible by bike. 
+
+We’ve found that depending on the category of user, the stations that Citibike users frequent the most often and the times that they’re on the bikes do change. While we can only guess at the reasons for why they take the routes that they do, we can still construct a picture of what kind of person that a user is, however incomplete. One possible concern for future data work is the ethics of data gathering. By just using spatial data, we’ve found a lot of information about the things that people tend to do. Citibike, and other companies like it, probably has much more data on each customer. In the future, it will be necessary to have discussions on what data can be collected and released to not violate the privacy of consumer. 
+
+[^1]: Here is the link to the used GitHub respository:  https://github.com/emilyliu47/mp4.git
 
