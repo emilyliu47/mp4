@@ -116,24 +116,34 @@ female_hours <- hours_fun(demographic = "gender", demo_arg = "2")
 Using Citibike data, we created graphics for the number of visits to all stations per every hour of the day for the whole year. We broke this visiting data down by gender and customer/subscriber status. 
 
 ```{r, message=FALSE, warning=FALSE}
+hours_list <- seq(0, 23, 1)
+female_hours$hour_time = factor(female_hours$hour_time, levels = hours_list)
+male_hours$hour_time = factor(male_hours$hour_time, levels = hours_list)
+customer_hours$hour_time = factor(customer_hours$hour_time, levels = hours_list)
+subscriber_hours$hour_time = factor(subscriber_hours$hour_time, levels = hours_list)
+
 #this function takes in a demographic and uses the results of the function above to create a bar chart of counts for each hour.
-plot_hours <- function(demographic, title, color) {
+plot_hours <- function(demographic, title, color, yEnd) {
 #making a "google trends" -like bar graph, with hours on x and count on y 
 hours_plot <- ggplot(data = demographic, aes(x = hour_time, y = N)) +
+  coord_cartesian(ylim = c(0, yEnd), expand = c(0, 0)) +
   geom_col(fill = color) +
   ggtitle(title) +
   xlab(label = "Time Distribution (24-hour days)") + 
   ylab(label = "Number of Visits") +
   scale_y_continuous(labels = comma) +
+  scale_x_discrete(labels = c("12AM", "1AM", "2AM", "3AM", "4AM", "5AM", "6AM", "7AM", "8AM", "9AM", "10AM", "11AM", "12PM",
+                              "1PM", "2PM", "3PM", "4PM", "5PM", "6PM", "7PM", "8PM", "9PM", "10PM", "11PM")) +
   theme_minimal()
 hours_plot
 }
 
-plot_hours(demographic = female_hours, title = "Female Hours", color = "red")
-plot_hours(demographic = male_hours, title = "Male Hours", color = "blue")
-plot_hours(demographic = customer_hours, title = "Customer Hours", color = "gold")
-plot_hours(demographic = subscriber_hours, title = "Subscriber Hours", color = "purple")
+plot_hours(demographic = female_hours, title = "Female Hours", color = "red", yEnd = 375000)
+plot_hours(demographic = male_hours, title = "Male Hours", color = "blue", yEnd = 1000000)
+plot_hours(demographic = customer_hours, title = "Customer Hours", color = "gold", yEnd  = 187500)
+plot_hours(demographic = subscriber_hours, title = "Subscriber Hours", color = "purple", yEnd = 1500000)
 ```
+
 
 The male, female, and subscriber hour distributions look very similar, due to the fact that all people with a recorded gender are subscribers. This also indicates that male and female subscribers use bikes at the same time, probably for the same purpose of commuting. Subscribers overall had distributions around normal rush hour times--peaks at 8:00 AM when people usually go to work and 5:00-6:00 PM when people go home. Customers had a very different distribution, with a bell curve-esque peak around 3:00 PM. A reason for this may be that subscribers use Citibike for their commute, while customers use them for recreational purposes, and do not have the strict constraints on their time that workers do.  
 
